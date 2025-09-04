@@ -1,16 +1,17 @@
+# Solves exercise 1 in the lab
+
 import cv2
-import time
 
 image = cv2.imread("images/image.png")
 image = cv2.putText(image, "Lorem Ipsum", (50,50), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
 
 cv2.imshow("Image", image)
 
-print("Press Q to quit, S to save.")
+print("Options:\nQ | Quit\nS | save\nArrow Keys | Rotate Image\nA | Decrease Brightess & Contrast\nD | Increase Brightness & Contrast")
 
 while(True): 
     key = cv2.waitKey()
-    print(key)
+
     if key == ord('q'):
         print("Quitting...")
         break
@@ -18,6 +19,12 @@ while(True):
         print("Saving at new_image.png")
         cv2.imwrite("new_image.png", image)
         break
+    elif key == ord('A'):
+        image = adjust_brightness_contrast(image, 1.2, 15)
+        cv2.imshow("Image", image)
+    elif key == ord('D'):
+        image = adjust_brightness_contrast(image, 1.2, -15)
+        cv2.imshow("Image", image)
     elif key == 81:
         image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
         cv2.imshow("Image", image)
