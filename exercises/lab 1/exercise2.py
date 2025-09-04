@@ -1,5 +1,3 @@
-# Completes exercise 2 in the lab
-
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt

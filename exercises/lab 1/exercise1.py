@@ -1,5 +1,3 @@
-# Solves exercise 1 in the lab
-
 import cv2
 
 image = cv2.imread("images/image.png")
