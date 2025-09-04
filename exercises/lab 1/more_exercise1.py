@@ -2,8 +2,9 @@ import cv2
 import numpy as np
 import time
 
-def adjust_brightness_contrast(img, alpha, beta):
-   return np.clip(img.astype(np.float32) * alpha + beta, 0, 255).astype(np.uint8)
+def adjust_brightness_contrast(img_rgb: np.ndarray, alpha: float=1.0, beta: float=0.0):
+    out = np.clip(alpha*img_rgb + beta, 0, 255).astype(np.uint8)
+    return out
 
 image = cv2.imread("images/image.png")
 cv2.imshow("Image (Before)", image)
