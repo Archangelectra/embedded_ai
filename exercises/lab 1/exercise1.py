@@ -19,12 +19,6 @@ while(True):
         print("Saving at new_image.png")
         cv2.imwrite("new_image.png", image)
         break
-    elif key == ord('A'):
-        image = adjust_brightness_contrast(image, 1.2, 15)
-        cv2.imshow("Image", image)
-    elif key == ord('D'):
-        image = adjust_brightness_contrast(image, 1.2, -15)
-        cv2.imshow("Image", image)
     elif key == 81:
         image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
         cv2.imshow("Image", image)
