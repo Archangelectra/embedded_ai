@@ -5,7 +5,7 @@ image = cv2.putText(image, "Lorem Ipsum", (50,50), cv2.FONT_HERSHEY_COMPLEX, 1, 
 
 cv2.imshow("Image", image)
 
-print("Options:\nQ | Quit\nS | save\nArrow Keys | Rotate Image\nA | Decrease Brightess & Contrast\nD | Increase Brightness & Contrast")
+print("Options:\nQ | Quit\nS | save\nArrow Keys | Rotate Image\n")
 
 while(True): 
     key = cv2.waitKey()
