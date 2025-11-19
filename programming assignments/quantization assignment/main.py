@@ -14,7 +14,7 @@ baseline.compile(
 
 dummy_input = np.random.rand(1, 224, 224, 3).astype(np.float32)
 
-num_inferences = 100  # Number of times to run inference for averaging
+num_inferences = 100 
 latencies = []
 
 for _ in range(num_inferences):
@@ -32,13 +32,11 @@ print(f"Standard deviation of latency: {std_latency:.4f} seconds")
 image_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/grace_hopper.jpg"
 image_path = tf.keras.utils.get_file('grace_hopper.jpg', image_url)
 
-# 3. Preprocess Image for ResNet (224x224)
 img = tf.keras.preprocessing.image.load_img(image_path, target_size=(224, 224))
 x = tf.keras.preprocessing.image.img_to_array(img)
 x = np.expand_dims(x, axis=0)
 x = tf.keras.applications.resnet_v2.preprocess_input(x)
 
-# --- BASELINE PREDICTION ---
 start = time.time()
 baseline_preds = baseline.predict(x)
 print(f"Time: {time.time() - start:.4f}s")
