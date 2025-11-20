@@ -1,6 +1,28 @@
 import os, time, pathlib, numpy as np, tensorflow as tf
 from tensorflow import keras
 
+def load_and_preprocess_image(url, target_size):
+    """Downloads from GitHub Raw and preprocesses."""
+    fname = str(abs(hash(url))) + ".jpg"
+    try:
+        # GitHub Raw does not require User-Agent headers
+        image_path = tf.keras.utils.get_file(fname, url)
+        
+        img = tf.keras.preprocessing.image.load_img(image_path, target_size=target_size)
+        x = tf.keras.preprocessing.image.img_to_array(img)
+        x = np.expand_dims(x, axis=0)
+        x = preprocess_input(x) # ResNet V2 (-1 to 1)
+        return x
+    except Exception as e:
+        print(f"Error loading {url}: {e}")
+        return None
+
+# Helper to check if the correct label is in the Top 3 predictions
+def check_top_k(preds, true_idx, k=3):
+    # argsort returns indices from low to high, so we take last k and reverse them
+    top_k_indices = np.argsort(preds)[0][-k:][::-1]
+    return true_idx in top_k_indices
+
 # set up baseline model, display summary
 baseline = tf.keras.models.load_model("artifacts/resnet101v2_baseline.keras")
 baseline.summary()
@@ -29,18 +51,45 @@ std_latency = np.std(latencies)
 print(f"Average inference latency: {average_latency:.4f} seconds")
 print(f"Standard deviation of latency: {std_latency:.4f} seconds")
 
-image_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/grace_hopper.jpg"
-image_path = tf.keras.utils.get_file('grace_hopper.jpg', image_url)
+TEST_SET = [
+    # (URL, Class_ID, Label_Name)
+    
+    # Goldfish (Class 1)
+    ("https://raw.githubusercontent.com/EliSchwartz/imagenet-sample-images/master/n01443537_goldfish.JPEG", 1, "Goldfish"),
+    
+    # Hammerhead Shark (Class 4)
+    ("https://raw.githubusercontent.com/EliSchwartz/imagenet-sample-images/master/n01484850_great_white_shark.JPEG", 2, "Great White Shark"),
+    
+    # Ostrich (Class 9)
+    ("https://raw.githubusercontent.com/EliSchwartz/imagenet-sample-images/master/n01518878_ostrich.JPEG", 9, "Ostrich"),
+    
+    # Zebra (Class 340)
+    ("https://raw.githubusercontent.com/EliSchwartz/imagenet-sample-images/master/n02391049_zebra.JPEG", 340, "Zebra"),
+    
+    # Golden Retriever (Class 207)
+    ("https://raw.githubusercontent.com/EliSchwartz/imagenet-sample-images/master/n02099601_golden_retriever.JPEG", 207, "Golden Retriever")
+]
 
-img = tf.keras.preprocessing.image.load_img(image_path, target_size=(224, 224))
-x = tf.keras.preprocessing.image.img_to_array(img)
-x = np.expand_dims(x, axis=0)
-x = tf.keras.applications.resnet_v2.preprocess_input(x)
+for url, true_label_idx, label_name in TEST_SET:
+    input_data = load_and_preprocess_image(url, (224, 224))
+    if input_data is None: continue
 
-start = time.time()
-baseline_preds = baseline.predict(x)
-print(f"Time: {time.time() - start:.4f}s")
-print("Top 3 Predictions:", tf.keras.applications.resnet_v2.decode_predictions(baseline_preds, top=3)[0])
+    start_time = time.perf_counter()
+    preds = baseline(input_data, training=False)
+    end_time = time.perf_counter()
+    
+    baseline_stats['latencies'].append((end_time - start_time) * 1000)
+    
+    # Accuracy Checks
+    probs = preds.numpy()
+    pred_idx = np.argmax(probs, axis=1)[0]
+    
+    if pred_idx == true_label_idx:
+        baseline_stats['top1'] += 1
+    if check_top_k(probs, true_label_idx, k=3):
+        baseline_stats['top3'] += 1
+    else:
+        print(f"  X Baseline Miss: {label_name} (Got ID {pred_idx}")
 print("----------------------------------------------------------")
 
 # -------------------------------------------------------------------------------------------- #
