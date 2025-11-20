@@ -2,7 +2,6 @@
 import numpy as np, tensorflow as tf
 from tensorflow import keras
 
-
 # basic test model i quickly threw together
 model = tf.keras.models.Sequential([
     tf.keras.layers.Conv2D(32, (3,3), input_shape=(112, 112, 3), activation="relu", padding="same"),
@@ -27,6 +26,5 @@ model.compile(
     loss="categorical_crossentropy",
     metrics=["accuracy"]
 )
-
 
 model.summary()
