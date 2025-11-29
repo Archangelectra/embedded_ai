@@ -1,30 +1,17 @@
-# imports
 import numpy as np, tensorflow as tf
 from tensorflow import keras
+from dataloader import DigiFaceLoader
 
-# basic test model i quickly threw together
-model = tf.keras.models.Sequential([
-    tf.keras.layers.Conv2D(32, (3,3), input_shape=(112, 112, 3), activation="relu", padding="same"),
-    tf.keras.layers.MaxPooling2D(pool_size=(2,2)),
+# load model
+model = keras.models.load_model("../model/model.keras")
 
-    tf.keras.layers.Conv2D(64, (2, 2), activation="relu", padding="same"),
-    tf.keras.layers.MaxPooling2D(2),
+# instantiate the loader
+loader = DigiFaceLoader(data_dir="../data")
 
-    tf.keras.layers.Conv2D(64, (2,2), activation="relu", padding="same"),
-    tf.keras.layers.MaxPooling2D(pool_size=(2,2)),
+# pull splits
+train_ds = loader.get_dataset(validation_split=0.2, subset='training', seed=42)
+val_ds = loader.get_dataset(validation_split=0.2, subset='validation', seed=42)
 
-    tf.keras.layers.Flatten(),
-    
-    tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dropout(0.2),
-    tf.keras.layers.Dense(2, activation='softmax')
-])
+model.fit(train_ds, validation_data=val_ds,epochs=10)
 
-# generic compilation
-model.compile(
-    optimizer="adam",
-    loss="categorical_crossentropy",
-    metrics=["accuracy"]
-)
-
-model.summary()
+model.save("..model/model.keras")
