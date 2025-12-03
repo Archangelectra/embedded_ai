@@ -1,68 +1,36 @@
 import cv2
 import numpy as np
-import tensorflow as tf
 
 def infer(model, frame):
     """
-    Detects faces in a frame using a Keras detection model.
-    
-    Args:
-        model: A loaded Keras model (tf.keras.Model).
-        frame: The video frame (BGR).
-        
-    Returns:
-        List of tuples (x, y, w, h) for detected faces.
+    inference method
     """
     h_img, w_img, _ = frame.shape
     
-    # 1. Preprocess the image
-    # Note: Adjust input_shape to match your specific detection model (e.g., 300x300, 320x320)
-    input_shape = (300, 300) 
-    
-    # Convert BGR to RGB
+    # 1. preprocess (match training size)
+    input_size = (112, 112)
     img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    img_resized = cv2.resize(img_rgb, input_size)
     
-    # Resize
-    img_resized = cv2.resize(img_rgb, input_shape)
+    # normalize to [0,1]
+    img_normalized = img_resized.astype(np.float32) / 255.0
     
-    # Expand dims (1, H, W, C)
-    input_tensor = np.expand_dims(img_resized, axis=0)
-    
-    # Normalize (Check your model's requirements: [0,1] or [-1,1])
-    # Common for MobileNet-based models:
-    input_tensor = (input_tensor.astype(np.float32) - 127.5) / 127.5
+    # batch dimension
+    input_tensor = np.expand_dims(img_normalized, axis=0)
 
-    # 2. Run Inference
-    # Detection models usually return a list of tensors: [boxes, classes, scores, num_detections]
-    detections = model.predict(input_tensor, verbose=0)
+    # 2. predict
+    # output shape will be (1, 4) -> [[x, y, w, h]] normalized
+    prediction = model.predict(input_tensor, verbose=0)
+    box = prediction[0] # Get the single box
     
-    # 3. Parse Output
-    # This structure depends heavily on the specific model architecture.
-    # Assuming a standard SSD output where:
-    # detections[0] = boxes (batch, num_boxes, 4)
-    # detections[1] = scores (batch, num_boxes)
-    # detections[2] = classes (batch, num_boxes)
+    # 3. convert normalized coordinates back to pixels
+    # prediction is [x_norm, y_norm, w_norm, h_norm]
+    pred_x, pred_y, pred_w, pred_h = box
     
-    # Note: Keras models might return a single dictionary or list. 
-    # If detections is a list:
-    boxes = detections[0][0] # Remove batch dim
-    scores = detections[1][0]
+    x = int(pred_x * w_img)
+    y = int(pred_y * h_img)
+    w = int(pred_w * w_img)
+    h = int(pred_h * h_img)
     
-    results = []
-    confidence_threshold = 0.5
-
-    for i, score in enumerate(scores):
-        if score > confidence_threshold:
-            # Box format: y_min, x_min, y_max, x_max (normalized)
-            ymin, xmin, ymax, xmax = boxes[i]
-            
-            # Convert to pixels
-            x = int(xmin * w_img)
-            y = int(ymin * h_img)
-            w = int((xmax - xmin) * w_img)
-            h = int((ymax - ymin) * h_img)
-            
-            if w > 0 and h > 0:
-                results.append((x, y, w, h))
-                
-    return results
+    # return as list of tuples (to keep runner.py happy)
+    return [(x, y, w, h)]
