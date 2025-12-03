@@ -1,6 +1,7 @@
-import numpy as np, tensorflow as tf, opencv
-import infer
+import numpy as np, tensorflow as tf
+import cv2
 from tensorflow import keras
+from infer import infer
 
 model = keras.models.load_model("../model/model.keras")
 camera = cv2.VideoCapture(0)
@@ -12,7 +13,7 @@ while True:
         print("Error occurred while reading frames, exiting.")
         break
 
-    faces = infer(model)
+    faces = infer(model, frame) 
     for (x, y, w, h) in faces:
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2) # Green rectangle
 

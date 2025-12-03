@@ -29,4 +29,7 @@ model.compile(
 
 model.summary()
 
-model.save("../model/model.keras") 
+try:
+    model.save("../model/model.keras") 
+except:
+    print("\nERROR: DIRECTORY NOT FOUND.\nThis program is coded to use the relative directory. Please rerun this program from within the /src folder.")
