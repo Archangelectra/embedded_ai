@@ -1,35 +1,42 @@
-# imports
-import numpy as np, tensorflow as tf
+import tensorflow as tf
 from tensorflow import keras
 
-# basic test model i quickly threw together
-model = tf.keras.models.Sequential([
-    tf.keras.layers.Conv2D(32, (3,3), input_shape=(112, 112, 3), activation="relu", padding="same"),
-    tf.keras.layers.MaxPooling2D(pool_size=(2,2)),
-
-    tf.keras.layers.Conv2D(64, (2, 2), activation="relu", padding="same"),
-    tf.keras.layers.MaxPooling2D(2),
-
-    tf.keras.layers.Conv2D(64, (2,2), activation="relu", padding="same"),
-    tf.keras.layers.MaxPooling2D(pool_size=(2,2)),
-
-    tf.keras.layers.Flatten(),
+def create_transfer_model(input_shape=(112, 112, 3)):
+    # 1. Load the Base Model (MobileNetV2)
+    # include_top=False removes the final classification layers (1000 classes)
+    # weights='imagenet' loads the pre-trained weights
+    base_model = tf.keras.applications.MobileNetV2(
+        input_shape=input_shape,
+        include_top=False, 
+        weights='imagenet'
+    )
     
-    tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dropout(0.2),
-    tf.keras.layers.Dense(4, activation='sigmoid')
-])
+    # 2. Freeze the Base Model
+    # We don't want to destroy the pre-learned features during the first pass
+    base_model.trainable = False
+    
+    # 3. Add Custom "Detection" Head
+    model = tf.keras.Sequential([
+        base_model,
+        tf.keras.layers.GlobalAveragePooling2D(), # Flatten the output
+        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dropout(0.2),
+        # Output: 4 numbers (x, y, w, h) normalized between 0 and 1
+        tf.keras.layers.Dense(4, activation='sigmoid')
+    ])
+    
+    return model
 
-# generic compilation
-model.compile(
-    optimizer="adam",
-    loss="sparse_categorical_crossentropy",
-    metrics=["accuracy"]
-)
-
-model.summary()
-
-try:
-    model.save("../model/model.keras") 
-except:
-    print("\nERROR: DIRECTORY NOT FOUND.\nThis program is coded to use the relative directory. Please rerun this program from within the /src folder.")
+if __name__ == "__main__":
+    model = create_transfer_model()
+    
+    # Compile with Regression loss
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+        loss="mse",
+        metrics=["mae"]
+    )
+    
+    model.summary()
+    model.save("../model/mobilenet_face_detector.keras")
+    print("Model created and saved to ../model/mobilenet_face_detector.keras")
