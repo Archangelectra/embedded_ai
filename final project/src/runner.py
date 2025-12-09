@@ -3,7 +3,7 @@ import cv2
 from tensorflow import keras
 from infer import infer
 
-model = keras.models.load_model("../model/model.keras")
+model = keras.models.load_model("../model/modeltuned.keras")
 camera = cv2.VideoCapture(0)
 
 while True:

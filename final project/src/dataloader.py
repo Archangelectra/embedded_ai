@@ -1,60 +1,98 @@
 import tensorflow as tf
-import tensorflow_datasets as tfds
+import os
+import cv2
+import numpy as np
 
 class WiderFaceLoader:
-    def __init__(self, img_height: int = 112, img_width: int = 112, batch_size: int = 32):
+    def __init__(self, data_dir, annotation_file, img_height=112, img_width=112, batch_size=32):
+        self.data_dir = data_dir
+        self.annotation_file = annotation_file
         self.img_height = img_height
         self.img_width = img_width
         self.batch_size = batch_size
+        
+        # Load file paths and boxes into memory
+        self.img_paths, self.bboxes = self._parse_txt_annotations()
+        print(f"Loaded {len(self.img_paths)} images from {self.annotation_file}")
 
-    def _preprocess(self, sample):
-        # 1. get image and faces
-        image = sample['image']
-        # TFDS bboxes are [ymin, xmin, ymax, xmax] (normalized 0-1)
-        bboxes = sample['faces']['bbox'] 
+    def _parse_txt_annotations(self):
+        img_paths = []
+        bboxes = []
         
-        # 2. find largest face (by area)
-        # we calculate height * width for all boxes
-        # height = (ymax - ymin), width = (xmax - xmin)
-        heights = bboxes[:, 2] - bboxes[:, 0]
-        widths = bboxes[:, 3] - bboxes[:, 1]
-        areas = heights * widths
-        
-        # find index of largest face
-        largest_idx = tf.argmax(areas)
-        best_box = bboxes[largest_idx]
-        
-        # 3. convert format: [ymin, xmin, ymax, xmax] -> [x, y, w, h]
-        # your model expects x (left), y (top), w, h
-        ymin, xmin, ymax, xmax = best_box[0], best_box[1], best_box[2], best_box[3]
-        
-        x = xmin
-        y = ymin
-        w = xmax - xmin
-        h = ymax - ymin
-        
-        # 4. resize Image
-        image = tf.image.convert_image_dtype(image, tf.float32) # [0,1]
-        image = tf.image.resize(image, [self.img_height, self.img_width])
-        
-        return image, tf.stack([x, y, w, h])
+        with open(self.annotation_file, 'r') as f:
+            lines = f.readlines()
+            
+        i = 0
+        while i < len(lines):
+            file_name = lines[i].strip()
+            i += 1
+            if i >= len(lines): break
+            
+            try:
+                num_boxes = int(lines[i].strip())
+            except ValueError:
+                # Handle cases where file might be malformed
+                i += 1
+                continue
+                
+            i += 1
+            
+            current_faces = []
+            for _ in range(num_boxes):
+                if i >= len(lines): break
+                # WIDER FACE format: x1 y1 w h blur expression ...
+                coords = list(map(int, lines[i].strip().split()))
+                x, y, w, h = coords[0], coords[1], coords[2], coords[3]
+                
+                # Keep valid faces
+                if w > 0 and h > 0:
+                    current_faces.append((x, y, w, h))
+                i += 1
+            
+            # Only add image if it has at least one face
+            if len(current_faces) > 0:
+                # Pick the largest face (Area = w * h)
+                largest_face = max(current_faces, key=lambda b: b[2] * b[3])
+                
+                # Construct full path
+                full_path = os.path.join(self.data_dir, file_name)
+                img_paths.append(full_path)
+                bboxes.append(largest_face)
+                
+        return img_paths, bboxes
 
-    def _filter_no_faces(self, sample):
-        # filter out images that have 0 faces
-        return tf.shape(sample['faces']['bbox'])[0] > 0
+    def _load_image_and_box(self, img_path, bbox):
+        # 1. Read Image
+        img_raw = tf.io.read_file(img_path)
+        img = tf.io.decode_jpeg(img_raw, channels=3)
+        img = tf.image.convert_image_dtype(img, tf.float32) # Normalize [0,1]
 
-    def get_dataset(self, split='train'):
-        # load WIDER FACE from tensorflow_datasets
-        ds = tfds.load('wider_face', split=split, shuffle_files=True)
+        # 2. Get original dimensions
+        original_shape = tf.shape(img)
+        h_orig = tf.cast(original_shape[0], tf.float32)
+        w_orig = tf.cast(original_shape[1], tf.float32)
+
+        # 3. Resize Image
+        img = tf.image.resize(img, [self.img_height, self.img_width])
         
-        # filter images with no faces
-        ds = ds.filter(self._filter_no_faces)
+        # 4. Normalize Bounding Box [x, y, w, h] -> [0.0 - 1.0]
+        x = tf.cast(bbox[0], tf.float32) / w_orig
+        y = tf.cast(bbox[1], tf.float32) / h_orig
+        w = tf.cast(bbox[2], tf.float32) / w_orig
+        h = tf.cast(bbox[3], tf.float32) / h_orig
         
-        # map to our format (Image, [x,y,w,h])
-        ds = ds.map(self._preprocess, num_parallel_calls=tf.data.AUTOTUNE)
+        return img, tf.stack([x, y, w, h])
+
+    def get_dataset(self):
+        # Create dataset from memory lists
+        dataset = tf.data.Dataset.from_tensor_slices((self.img_paths, self.bboxes))
         
-        # batch and prefetch
-        ds = ds.batch(self.batch_size)
-        ds = ds.prefetch(tf.data.AUTOTUNE)
+        # Shuffle and process
+        dataset = dataset.shuffle(buffer_size=2000)
+        dataset = dataset.map(self._load_image_and_box, num_parallel_calls=tf.data.AUTOTUNE)
         
-        return ds
+        # Batching
+        dataset = dataset.batch(self.batch_size)
+        dataset = dataset.prefetch(tf.data.AUTOTUNE)
+        
+        return dataset

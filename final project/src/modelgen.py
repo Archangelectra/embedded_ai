@@ -38,5 +38,5 @@ if __name__ == "__main__":
     )
     
     model.summary()
-    model.save("../model/mobilenet_face_detector.keras")
-    print("Model created and saved to ../model/mobilenet_face_detector.keras")
+    model.save("../model/model.keras")
+    print("Model created and saved to ../model/model.keras")
