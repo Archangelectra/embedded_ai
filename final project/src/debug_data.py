@@ -48,7 +48,7 @@ for images, boxes in dataset.take(1):
         
         canvas.append(img_vis)
 
-    # Save the debug image
-    final_grid = np.hstack(canvas) # Stitch images side-by-side
+    # save the debug image
+    final_grid = np.hstack(canvas) # stitch images side-by-side
     cv2.imwrite("debug_data_check.jpg", final_grid)
     print("Saved 'debug_data_check.jpg'. Check this image!")
