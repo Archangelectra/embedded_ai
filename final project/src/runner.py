@@ -75,8 +75,8 @@ if not camera.isOpened():
 
 # PERFORMANCE TIP: Force MJPG format for USB cameras to get higher FPS
 camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 # 3. setup video writer (backup)
 frame_width = int(camera.get(3))
