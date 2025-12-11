@@ -1,0 +1,6 @@
+# RUN INSTRUCTIONS
+
+- First, activate the environment under env folder provided in the repository (venv method, source bin/activate), or activate an environment containing tensorflow and opencv.
+- Second, set your active directory to src. If you do not do this, the code will not run.
+- Due to github file sizes, I am unable to upload the models myself. Therefore, it is necessary to generate them yourself. Run train.py, which will create modeltuned.keras, which is necessary for running. Let training complete
+- At this point, you can run runner.py, which utilizes inference.py. Due to some weird bounding errors that I didn't have time to fix, it fails to track out to the edges, but otherwise should work perfectly! 
