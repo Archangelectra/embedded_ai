@@ -5,6 +5,9 @@ pic0.jpg
 wit_help.jpg
 artifacts
 data
+best_head.keras
 model.keras
 modeltuned.keras
+modeltunedv1.keras
 programming assignments/cnn assignment/model_quant_int8.tflite
+output*.avi
