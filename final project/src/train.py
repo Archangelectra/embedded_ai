@@ -76,7 +76,7 @@ print("\n--- PHASE 2: Fine-Tuning ---")
 # unfreeze the base model
 model.trainable = True
 
-# recompile with very low learning rate for fine tuning
+# compile with very low learning rate for fine tuning
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5), 
     loss='mse', 
